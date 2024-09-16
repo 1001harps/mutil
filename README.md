@@ -19,3 +19,9 @@ Options:
   -h, --help               Print help
   -V, --version            Print version
 ```
+
+---
+
+Dependencies:
+
+- [portmidi](https://portmedia.sourceforge.net/portmidi/)
