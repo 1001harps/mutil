@@ -24,4 +24,9 @@ Options:
 
 Dependencies:
 
+- [rust toolchain](https://www.rust-lang.org/tools/install)
 - [portmidi](https://portmedia.sourceforge.net/portmidi/)
+
+Installation:
+
+- `cargo install --git https://github.com/1001harps/mutil`
