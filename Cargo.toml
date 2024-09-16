@@ -2,6 +2,7 @@
 name = "mutil"
 version = "0.1.0"
 edition = "2021"
+description = "midi utility cli"
 
 [dependencies]
 clap = { version = "4.5.17", features = ["derive"] }

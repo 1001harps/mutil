@@ -9,22 +9,44 @@ struct Cli {
     #[command(subcommand)]
     command: Commands,
 
+    /// Midi channel number
     #[arg(short, long)]
     channel: Option<u8>,
 
+    /// Midi device id
     #[arg(short, long)]
     device: Option<i32>,
 }
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Get list of midi devices
     Devices,
+    /// Get list of midi input devices
     InputDevices,
+    /// Get list of midi output devices
     OutputDevices,
+    /// Open stream of incoming midi messages
     Stream,
-    NoteOn { note: u8, velocity: Option<u8> },
-    NoteOff { note: u8 },
-    Trig { note: u8, velocity: Option<u8> },
+    /// Send midi note on message
+    NoteOn {
+        /// midi note number
+        note: u8,
+        /// midi velocity number
+        velocity: Option<u8>,
+    },
+    /// Send midi note off message
+    NoteOff {
+        /// midi note number
+        note: u8,
+    },
+    /// Send midi note on message followed by note off message
+    Trig {
+        /// midi note number
+        note: u8,
+        /// midi velocity number
+        velocity: Option<u8>,
+    },
 }
 
 fn print_devices(devices: &Vec<mutil::Device>) {
