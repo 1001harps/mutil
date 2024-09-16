@@ -132,23 +132,32 @@ pub struct Mutil {
 }
 
 impl Mutil {
-    pub fn new() -> Mutil {
-        let context = Arc::new(portmidi::PortMidi::new().unwrap());
-        Mutil { context }
+    pub fn new() -> Result<Mutil, portmidi::Error> {
+        let pm_context = portmidi::PortMidi::new()?;
+        let context = Arc::new(pm_context);
+        Ok(Mutil { context })
     }
 
-    pub fn devices(&self, direction: Option<DeviceDirection>) -> Vec<Device> {
+    pub fn devices(
+        &self,
+        direction: Option<DeviceDirection>,
+    ) -> Result<Vec<Device>, portmidi::Error> {
         let devices = self.context.devices().unwrap().into_iter().map(Device::new);
 
         if direction.is_none() {
-            return devices.collect();
+            return Ok(devices.collect());
         }
 
         let dir = direction.unwrap();
-        devices.filter(|d| d.direction == dir).collect()
+        Ok(devices.filter(|d| d.direction == dir).collect())
     }
 
-    pub fn note_on(&self, note: u8, velocity: Option<u8>, options: MessageOptions) {
+    pub fn note_on(
+        &self,
+        note: u8,
+        velocity: Option<u8>,
+        options: MessageOptions,
+    ) -> Result<(), portmidi::Error> {
         let device_id = options
             .device
             .unwrap_or(self.context.default_output_device_id().unwrap());
@@ -161,10 +170,10 @@ impl Mutil {
             .and_then(|dev| self.context.output_port(dev, 1024))
             .unwrap();
 
-        let _ = out_port.write_message(MidiMessage::note_on(channel, note, velocity).to_portmidi());
+        out_port.write_message(MidiMessage::note_on(channel, note, velocity).to_portmidi())
     }
 
-    pub fn note_off(&self, note: u8, options: MessageOptions) {
+    pub fn note_off(&self, note: u8, options: MessageOptions) -> Result<(), portmidi::Error> {
         let device_id = options
             .device
             .unwrap_or(self.context.default_output_device_id().unwrap());
@@ -177,10 +186,15 @@ impl Mutil {
             .and_then(|dev| self.context.output_port(dev, 1024))
             .unwrap();
 
-        let _ = out_port.write_message(MidiMessage::note_off(channel, note).to_portmidi());
+        out_port.write_message(MidiMessage::note_off(channel, note).to_portmidi())
     }
 
-    pub fn trig(&self, note: u8, velocity: Option<u8>, options: MessageOptions) {
+    pub fn trig(
+        &self,
+        note: u8,
+        velocity: Option<u8>,
+        options: MessageOptions,
+    ) -> Result<(), portmidi::Error> {
         let device_id = options
             .device
             .unwrap_or(self.context.default_output_device_id().unwrap());
@@ -193,14 +207,14 @@ impl Mutil {
             .and_then(|dev| self.context.output_port(dev, 1024))
             .unwrap();
 
-        let _ = out_port.write_message(MidiMessage::note_on(channel, note, velocity).to_portmidi());
+        out_port.write_message(MidiMessage::note_on(channel, note, velocity).to_portmidi())?;
 
         thread::sleep(Duration::from_millis(40));
 
-        let _ = out_port.write_message(MidiMessage::note_off(channel, note).to_portmidi());
+        out_port.write_message(MidiMessage::note_off(channel, note).to_portmidi())
     }
 
-    pub fn stream(&self, input_id: Option<i32>) -> Receiver<MidiMessage> {
+    pub fn stream(&self, input_id: Option<i32>) -> Result<Receiver<MidiMessage>, portmidi::Error> {
         let timeout = Duration::from_millis(10);
         const BUF_LEN: usize = 1024;
 
@@ -208,7 +222,7 @@ impl Mutil {
 
         let input_id = input_id.unwrap_or(self.context.default_input_device_id().unwrap());
 
-        let devices = self.context.devices().unwrap();
+        let devices = self.context.devices()?;
 
         let input_device = devices
             .clone()
@@ -241,6 +255,6 @@ impl Mutil {
             }
         });
 
-        rx_from_port
+        Ok(rx_from_port)
     }
 }

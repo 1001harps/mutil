@@ -1,5 +1,6 @@
 use clap::{command, Parser, Subcommand};
 use mutil::MessageOptions;
+use std::process;
 mod mutil;
 
 #[derive(Parser)]
@@ -53,9 +54,9 @@ fn print_devices(devices: &Vec<mutil::Device>) {
     println!("{}", serde_json::to_string(devices).unwrap())
 }
 
-fn main() {
+fn execute() -> Result<(), portmidi::Error> {
     let cli = Cli::parse();
-    let mutil = mutil::Mutil::new();
+    let mutil = mutil::Mutil::new()?;
 
     let message_options = MessageOptions {
         device: cli.device,
@@ -63,18 +64,18 @@ fn main() {
     };
 
     match &cli.command {
-        Commands::Devices => print_devices(&mutil.devices(None)),
+        Commands::Devices => print_devices(&mutil.devices(None)?),
         Commands::InputDevices => {
-            print_devices(&mutil.devices(Some(mutil::DeviceDirection::Input)))
+            print_devices(&mutil.devices(Some(mutil::DeviceDirection::Input))?)
         }
         Commands::OutputDevices => {
-            print_devices(&mutil.devices(Some(mutil::DeviceDirection::Output)))
+            print_devices(&mutil.devices(Some(mutil::DeviceDirection::Output))?)
         }
-        Commands::NoteOn { note, velocity } => mutil.note_on(*note, *velocity, message_options),
-        Commands::NoteOff { note } => mutil.note_off(*note, message_options),
-        Commands::Trig { note, velocity } => mutil.trig(*note, *velocity, message_options),
+        Commands::NoteOn { note, velocity } => mutil.note_on(*note, *velocity, message_options)?,
+        Commands::NoteOff { note } => mutil.note_off(*note, message_options)?,
+        Commands::Trig { note, velocity } => mutil.trig(*note, *velocity, message_options)?,
         Commands::Stream => {
-            let rx = mutil.stream(None);
+            let rx = mutil.stream(None)?;
 
             loop {
                 let msg = rx.recv().unwrap();
@@ -82,4 +83,15 @@ fn main() {
             }
         }
     };
+
+    Ok(())
+}
+
+fn main() {
+    let result = execute();
+    if result.is_err() {
+        let err = result.err();
+        eprintln!("{:?}", err);
+        process::exit(1);
+    }
 }
