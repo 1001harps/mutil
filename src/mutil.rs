@@ -1,6 +1,9 @@
 use serde::Serialize;
 use std::{
-    sync::mpsc::{self, Receiver},
+    sync::{
+        mpsc::{self, Receiver},
+        Arc,
+    },
     thread,
     time::Duration,
 };
@@ -125,19 +128,17 @@ pub struct MessageOptions {
 }
 
 pub struct Mutil {
-    // context: portmidi::PortMidi,
+    context: Arc<portmidi::PortMidi>,
 }
 
 impl Mutil {
     pub fn new() -> Mutil {
-        // Mutil { context }
-        Mutil {}
+        let context = Arc::new(portmidi::PortMidi::new().unwrap());
+        Mutil { context }
     }
 
     pub fn devices(&self, direction: Option<DeviceDirection>) -> Vec<Device> {
-        let context = portmidi::PortMidi::new().unwrap();
-
-        let devices = context.devices().unwrap().into_iter().map(Device::new);
+        let devices = self.context.devices().unwrap().into_iter().map(Device::new);
 
         if direction.is_none() {
             return devices.collect();
@@ -148,51 +149,48 @@ impl Mutil {
     }
 
     pub fn note_on(&self, note: u8, velocity: Option<u8>, options: MessageOptions) {
-        let context = portmidi::PortMidi::new().unwrap();
-
         let device_id = options
             .device
-            .unwrap_or(context.default_output_device_id().unwrap());
+            .unwrap_or(self.context.default_output_device_id().unwrap());
 
         let channel = options.channel.unwrap_or(0);
 
-        let mut out_port = context
+        let mut out_port = self
+            .context
             .device(device_id)
-            .and_then(|dev| context.output_port(dev, 1024))
+            .and_then(|dev| self.context.output_port(dev, 1024))
             .unwrap();
 
         let _ = out_port.write_message(MidiMessage::note_on(channel, note, velocity).to_portmidi());
     }
 
     pub fn note_off(&self, note: u8, options: MessageOptions) {
-        let context = portmidi::PortMidi::new().unwrap();
-
         let device_id = options
             .device
-            .unwrap_or(context.default_output_device_id().unwrap());
+            .unwrap_or(self.context.default_output_device_id().unwrap());
 
         let channel = options.channel.unwrap_or(0);
 
-        let mut out_port = context
+        let mut out_port = self
+            .context
             .device(device_id)
-            .and_then(|dev| context.output_port(dev, 1024))
+            .and_then(|dev| self.context.output_port(dev, 1024))
             .unwrap();
 
         let _ = out_port.write_message(MidiMessage::note_off(channel, note).to_portmidi());
     }
 
     pub fn trig(&self, note: u8, velocity: Option<u8>, options: MessageOptions) {
-        let context = portmidi::PortMidi::new().unwrap();
-
         let device_id = options
             .device
-            .unwrap_or(context.default_output_device_id().unwrap());
+            .unwrap_or(self.context.default_output_device_id().unwrap());
 
         let channel = options.channel.unwrap_or(0);
 
-        let mut out_port = context
+        let mut out_port = self
+            .context
             .device(device_id)
-            .and_then(|dev| context.output_port(dev, 1024))
+            .and_then(|dev| self.context.output_port(dev, 1024))
             .unwrap();
 
         let _ = out_port.write_message(MidiMessage::note_on(channel, note, velocity).to_portmidi());
@@ -208,11 +206,9 @@ impl Mutil {
 
         let (tx_from_port, rx_from_port) = mpsc::channel();
 
-        let context = portmidi::PortMidi::new().unwrap();
+        let input_id = input_id.unwrap_or(self.context.default_input_device_id().unwrap());
 
-        let input_id = input_id.unwrap_or(context.default_input_device_id().unwrap());
-
-        let devices = context.devices().unwrap();
+        let devices = self.context.devices().unwrap();
 
         let input_device = devices
             .clone()
@@ -225,6 +221,8 @@ impl Mutil {
             input_device,
             input_device.id()
         );
+
+        let context = self.context.clone();
 
         thread::spawn(move || {
             println!("thread");
