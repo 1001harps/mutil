@@ -102,7 +102,7 @@ impl MidiMessage {
     }
 
     pub fn json(&self) -> String {
-        let status = self.status & 0xf0 >> 4;
+        let status = (self.status & 0xf0) >> 4;
         let channel = self.status & 0xf;
 
         let type_ = match status {
