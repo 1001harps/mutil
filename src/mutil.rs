@@ -43,6 +43,7 @@ impl Device {
 pub enum MidiMessageType {
     NoteOn,
     NoteOff,
+    ControlChange,
     Todo,
 }
 
@@ -108,6 +109,7 @@ impl MidiMessage {
         let type_ = match status {
             8 => MidiMessageType::NoteOff,
             9 => MidiMessageType::NoteOn,
+            0xb => MidiMessageType::ControlChange,
             _ => MidiMessageType::Todo,
         };
 
