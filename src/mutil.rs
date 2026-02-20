@@ -115,7 +115,7 @@ impl MidiMessage {
 
         let msg = MidiMessageJson {
             type_,
-            channel,
+            channel: channel + 1,
             note: self.data1,
             velocity: self.data2,
         };
